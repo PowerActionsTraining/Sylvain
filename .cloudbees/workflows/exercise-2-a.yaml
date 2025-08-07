@@ -1,0 +1,60 @@
+
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: Exercise 2 A
+on:
+  workflow_dispatch:
+    inputs:
+      pathtobinary:
+        type: string
+        default: example.txt
+        required: true
+      artifactversion:
+        type: string
+        default: 1.0.0
+        required: true
+jobs:
+  build:
+    env:
+      NEXUS_USERNAME: ${{vars.nexus_training_actions_user}}
+      NEXUS_PASSWORD: ${{secrets.nexus_training_actions_secret}}
+      NEXUS_REPO: ${{vars.nexus_training_actions_repo}}
+    steps:
+      - name: Print vars
+        id: step1
+        uses: docker://curlimages/curl:latest
+        shell: sh
+        run: |
+          echo  $NEXUS_USERNAME - $NEXUS_PASSWORD - $NEXUS_REPO
+      - name: Create file
+        id: step3
+        uses: docker://curlimages/curl:latest
+        shell: sh
+        run: echo "This is an example file - $(date)" > ${{inputs.pathtobinary}}
+      - name: Upload to Nexus
+        id: step4
+        uses: docker://curlimages/curl:latest
+        shell: sh
+        run: |
+          curl -v -u $NEXUS_USERNAME:$NEXUS_PASSWORD --upload-file ${{inputs.pathtobinary}} $NEXUS_REPO
+      - name: List artifacts in repo
+        id: step5
+        uses: docker://curlimages/curl:latest
+        shell: sh
+        run: |
+          curl -s -u $NEXUS_USERNAME:$NEXUS_PASSWORD \
+             "https://nexus.cloudbees.guru:8081/service/rest/v1/search?repository=unify-docker-training" \
+      - name: Get artifact digest
+        id: step6
+        uses: docker://ganeshpl/alpine-jq
+        shell: sh
+        run: |
+          echo -n "$(echo "$NEXUS_PASSWORD" | curl -s -u "$NEXUS_USERNAME" 'https://nexus.cloudbees.guru:8081/service/rest/v1/assets?repository=unify-docker-training' | jq -r '.items[] | select(.path == "${{inputs.pathtobinary}}") | .checksum.md5')" > $CLOUDBEES_OUTPUTS/digest
+      - name: Register built artifact
+        id: step7
+        uses: cloudbees-io/register-build-artifact@v1
+        with:
+          version: ${{inputs.artifactversion}}
+          url: ${{vars.nexus_training_actions_repo}}${{inputs.pathtobinary}}
+          digest: ${{steps.step6.outputs.digest}}
+          name: ${{inputs.pathtobinary}}
