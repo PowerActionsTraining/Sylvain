@@ -6,7 +6,7 @@ on:
     inputs:
       bigelephant:
         type: string
-        default: Sylvain
+        default: TheBestMan
         required: true
 jobs:
   build:
