@@ -9,6 +9,15 @@ inputs:
   artifactversion:
     description: 'version'
     required: true
+  username:
+    description: 'username'
+    required: true
+  password:
+    description: 'password'
+    required: true
+  repo:
+    description: 'repo'
+    required: true
 runs:
   using: composite
   steps:
@@ -17,7 +26,7 @@ runs:
         uses: docker://curlimages/curl:latest
         shell: sh
         run: |
-          echo  $NEXUS_USERNAME - $NEXUS_PASSWORD - $NEXUS_REPO
+          echo  ${{inputs.username}} - ${{inputs.password}} - ${{inputs.repo}}
       - name: Create file
         id: step3
         uses: docker://curlimages/curl:latest
@@ -28,20 +37,20 @@ runs:
         uses: docker://curlimages/curl:latest
         shell: sh
         run: |
-          curl -v -u $NEXUS_USERNAME:$NEXUS_PASSWORD --upload-file ${{inputs.pathtobinary}} $NEXUS_REPO
+          curl -v -u ${{inputs.username}}:${{inputs.password}} --upload-file ${{inputs.pathtobinary}} ${{inputs.repo}}
       - name: List artifacts in repo
         id: step5
         uses: docker://curlimages/curl:latest
         shell: sh
         run: |
-          curl -s -u $NEXUS_USERNAME:$NEXUS_PASSWORD \
+          curl -s -u ${{inputs.username}}:${{inputs.password}} \
              "https://nexus.cloudbees.guru:8081/service/rest/v1/search?repository=unify-docker-training" \
       - name: Get artifact digest
         id: step6
         uses: docker://ganeshpl/alpine-jq
         shell: sh
         run: |
-          echo -n "$(echo "$NEXUS_PASSWORD" | curl -s -u "$NEXUS_USERNAME" 'https://nexus.cloudbees.guru:8081/service/rest/v1/assets?repository=unify-docker-training' | jq -r '.items[] | select(.path == "${{inputs.pathtobinary}}") | .checksum.md5')" > $CLOUDBEES_OUTPUTS/digest
+          echo -n "$(echo "${{inputs.password}}" | curl -s -u "${{inputs.username}}" 'https://nexus.cloudbees.guru:8081/service/rest/v1/assets?repository=unify-docker-training' | jq -r '.items[] | select(.path == "${{inputs.pathtobinary}}") | .checksum.md5')" > $CLOUDBEES_OUTPUTS/digest
       - name: Register built artifact
         id: step7
         uses: cloudbees-io/register-build-artifact@v1
