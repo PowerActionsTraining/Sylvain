@@ -24,3 +24,6 @@ jobs:
         with:
           pathtobinary: ${{inputs.pathtobinary}}
           artifactversion: ${{inputs.artifactversion}}
+          username: ${{vars.nexus_training_actions_user}}
+          password: ${{secrets.nexus_training_actions_secret}}
+          repo: ${{vars.nexus_training_actions_repo}}
